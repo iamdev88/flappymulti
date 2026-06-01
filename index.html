@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Flappy Bird Arcade</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Load Socket.IO Client Library -->
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+        
+        <!-- Coins Indicator (Global UI layer) -->
+        <div id="top-bar">
+            <div id="settings-btn" class="icon-btn">⚙️</div>
+            <div id="coin-container">
+                <div class="coin-icon"></div>
+                <span id="coin-count">0</span>
+            </div>
+        </div>
+
+        <!-- HUD (In Game - Solo) -->
+        <div id="hud" class="hidden">
+            <div id="score">0</div>
+        </div>
+
+        <!-- Multiplayer HUD Overlay (In Game - Live Match scoreboard) -->
+        <div id="mp-hud" class="hidden">
+            <div id="mp-scoreboard">
+                <!-- Dynamically filled in JS -->
+            </div>
+        </div>
+
+        <!-- Start/Lobby Menu -->
+        <div id="lobby-screen" class="screen">
+            <h1 class="logo-text">FLAPPY<br><span class="accent-text">ARCADE</span></h1>
+            <div id="best-score-display">BEST SCORE: <span id="best-score-val">0</span></div>
+            
+            <button id="start-btn" class="btn play-btn animate-pulse">PLAY SOLO</button>
+            
+            <div class="lobby-panels">
+                <!-- Left panel: Multiplayer controls -->
+                <div class="lobby-panel-column">
+                    <div class="panel-section-title">MULTIPLAYER</div>
+                    <button class="btn-sub" id="create-room-btn">Create Room</button>
+                    <button class="btn-sub" id="join-room-btn">Join Room</button>
+                </div>
+                
+                <!-- Right panel: Customisation & Shop -->
+                <div class="lobby-panel-column">
+                    <div class="panel-section-title">COLLECTION</div>
+                    <button class="btn-sub" id="customize-btn">Skins 👕</button>
+                    <button class="btn-sub" id="shop-btn">Shop 🛒</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Join Room & Name Dialog Overlay -->
+        <div id="join-dialog" class="screen overlay-screen hidden">
+            <div class="overlay-panel dialog-panel">
+                <button class="close-btn" id="join-close">&times;</button>
+                <h2 id="join-dialog-title">CREATE ROOM</h2>
+                <div class="input-group">
+                    <label for="player-name-input">Your Name</label>
+                    <input type="text" id="player-name-input" placeholder="Flyer" maxlength="10">
+                </div>
+                <div class="input-group hidden" id="code-input-group">
+                    <label for="room-code-input">6-Char Room Code</label>
+                    <input type="text" id="room-code-input" placeholder="A7K9P2" maxlength="6">
+                </div>
+                <button id="join-dialog-action-btn" class="btn">CONTINUE</button>
+            </div>
+        </div>
+
+        <!-- Multiplayer Room Lobby Screen -->
+        <div id="mp-lobby-overlay" class="screen overlay-screen hidden">
+            <div class="overlay-panel lobby-room-panel">
+                <button class="close-btn" id="mp-lobby-close">&times;</button>
+                <h2>ROOM: <span id="lobby-room-code" style="color: #FFC107;">A7K9P2</span></h2>
+                <div class="lobby-players-container">
+                    <div class="panel-section-title">PLAYERS IN ROOM</div>
+                    <div id="lobby-players-list">
+                        <!-- Filled in JS -->
+                    </div>
+                </div>
+                <div class="lobby-actions">
+                    <button id="toggle-ready-btn" class="btn">READY</button>
+                    <button id="start-match-btn" class="btn hidden">START</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Customize Screen Overlay -->
+        <div id="customize-overlay" class="screen overlay-screen hidden">
+            <div class="overlay-panel">
+                <button class="close-btn" id="customize-close">&times;</button>
+                <h2>MY BIRD SKINS</h2>
+                <div class="skins-grid" id="skins-select-grid">
+                    <!-- Dynamic rendering in JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Shop Screen Overlay -->
+        <div id="shop-overlay" class="screen overlay-screen hidden">
+            <div class="overlay-panel">
+                <button class="close-btn" id="shop-close">&times;</button>
+                <h2>BIRD SHOP</h2>
+                <div class="skins-grid" id="shop-items-grid">
+                    <!-- Dynamic rendering in JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Screen Overlay -->
+        <div id="settings-overlay" class="screen overlay-screen hidden">
+            <div class="overlay-panel settings-panel">
+                <button class="close-btn" id="settings-close">&times;</button>
+                <h2>SETTINGS</h2>
+                <div class="settings-row">
+                    <span>Music 🎵</span>
+                    <label class="switch">
+                        <input type="checkbox" id="music-toggle" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="settings-row">
+                    <span>Sound Effects 🔊</span>
+                    <label class="switch">
+                        <input type="checkbox" id="sound-toggle" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Solo Game Over Screen -->
+        <div id="game-over-screen" class="screen hidden">
+            <h1>Game Over</h1>
+            <p>Score: <span id="final-score">0</span></p>
+            <button id="restart-btn" class="btn">Restart</button>
+            <button id="lobby-back-btn" class="btn-sub">Lobby</button>
+        </div>
+
+        <!-- Multiplayer Match Over Rankings Screen -->
+        <div id="mp-game-over-screen" class="screen hidden">
+            <h1 class="accent-text" style="font-size: 2.8rem; margin-bottom: 20px;">MATCH OVER</h1>
+            <div class="rankings-container">
+                <div class="panel-section-title">FINAL RANKINGS</div>
+                <div id="mp-rankings-list">
+                    <!-- Filled dynamically in JS -->
+                </div>
+            </div>
+            <button id="mp-return-lobby-btn" class="btn" style="margin-top: 20px;">BACK TO LOBBY</button>
+        </div>
+    </div>
+
+    <!-- Preload Assets -->
+    <div style="display: none;">
+        <img id="img-bird-idle" src="assets/characters/bird_idle.png">
+        <img id="img-bird-fly-1" src="assets/characters/bird_fly_1.png">
+        <img id="img-bird-fly-2" src="assets/characters/bird_fly_2.png">
+        <img id="img-bird-dead" src="assets/characters/bird_dead.png">
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
